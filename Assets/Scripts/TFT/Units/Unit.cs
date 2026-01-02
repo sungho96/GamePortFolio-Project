@@ -17,6 +17,9 @@ public class Unit : MonoBehaviour
     public float separationRadius = 0.6f;
     public float separationForce = 2.0f;
     private float attackTimer;
+    [Header("Action State")]
+    [SerializeField] private bool isAttacking;
+    public bool IsAttacking => isAttacking;
 
     [Header ("Scaling")]
     public int baseHp = 10;
@@ -40,6 +43,15 @@ public class Unit : MonoBehaviour
 
     [Header("UI Effects")]
     [SerializeField] private GameObject damagePopupPrefab;
+
+    [Header("Targeting")]
+    public Unit currentTarget;
+
+    [Tooltip("타겟 재탐색 최소 간격")]
+    public float retargetInterval = 0.25f;
+
+    [HideInInspector]
+    public float nextRetargetTime = 0f;
 
     public void Init(TeamType teamType, int round)
     {
@@ -89,10 +101,23 @@ public class Unit : MonoBehaviour
     }
     public void TickAttack(float deltaTime, Unit target)
     {
-        if (target == null || IsDead() || target.IsDead()) return;
-       
+        if (target == null || IsDead() || target.IsDead()) 
+        {
+            isAttacking = false;
+            return;
+        }
+
+        float dist = Vector3.Distance(transform.position, target.transform.position);
+        if(dist > attackRange)
+        {
+            isAttacking = false;
+            return;
+        }
+        isAttacking = true;
+
         attackTimer += deltaTime;
         UpdateCooldownBar();
+
         if (attackTimer >= attackInterval)
         {
             attackTimer = 0;
@@ -102,29 +127,46 @@ public class Unit : MonoBehaviour
     }
     public void MoveTowards(Unit target, float deltaTime, Vector3 separtion)
     {
+        if (isAttacking) return;
         if (target == null) return;
 
         Vector3 dir = (target.transform.position - transform.position).normalized;
-        Vector3 velocity = (dir * moveSpeed) + separtion;
+
+        Vector3 desired = dir * moveSpeed;
+        Vector3 steering = separtion;
+
+        // 너무 빨라지지 않게 제한
+        Vector3 velocity = desired + separtion;
+
+        velocity = Vector3.ClampMagnitude(velocity, moveSpeed);
 
         transform.position += velocity * deltaTime;
+        
     }
     public Vector3 ComputeSeparation(List<Unit> units)
     {
         Vector3 force = Vector3.zero;
+        int count = 0;
 
         foreach (Unit other in units)
         {
-            if (other == null || other == this) continue;
+            if (other == null || other == this || other.IsDead()) continue;
 
             float dist = Vector3.Distance(transform.position, other.transform.position);
-            if(dist > 0f && dist <separationRadius)
-            {
-                Vector3 away = (transform.position - other.transform.position).normalized;
-                force += away * (separationRadius - dist);
-            }
+
+            if (dist <= 0f || dist > separationRadius) continue;
+
+            Vector3 away = (transform.position - other.transform.position).normalized;
+            force += away * (separationRadius - dist);
+            count++;
+            
         }
-        return force * separationForce;
+
+        if (count == 0) return Vector3.zero;
+
+        force /= count;
+        force = force.normalized * separationForce;
+        return force;
     }
     public void IncreaseStar(int round)
     {

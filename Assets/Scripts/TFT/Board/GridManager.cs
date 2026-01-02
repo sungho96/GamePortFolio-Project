@@ -171,13 +171,27 @@ public class GridManager : MonoBehaviour
         {
             if (unit == null || unit.IsDead())
                 continue;
+            bool needRetarget = unit.currentTarget == null || unit.currentTarget.IsDead();
 
-            Unit target = FindNearestEnemy(unit, units);
-            if (target == null)
-                continue;
+            if(needRetarget && Time.time >= unit.nextRetargetTime)
+            {
+                unit.currentTarget = FindNearestEnemy(unit, units);
+                unit.nextRetargetTime = Time.time + unit.retargetInterval;
+            }
 
+            Unit target = unit.currentTarget;
+            if (target == null) continue;
+
+            float chaseMaxDist = Mathf.Sqrt((width - 1) * (width - 1) + (height - 1) * (height - 1)) * tileSize + 0.5f;
             float dist = Vector3.Distance(unit.transform.position, target.transform.position);
-            if (dist <= unit.attackRange)
+
+            if (dist > chaseMaxDist)
+            {
+                unit.currentTarget = null;
+                continue;
+            }
+            float attackRange = unit.attackRange;
+            if (dist <= attackRange)
             {
                 unit.TickAttack(Time.deltaTime, target);
             }
