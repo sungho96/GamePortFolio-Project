@@ -33,6 +33,21 @@ public class GridManager : MonoBehaviour
 
     private Unit selectedUnit;
 
+    [Header("Round Income")]
+    public int baseIncome = 5;
+    public int winBonus = 1;
+    public int lossBonus = 0;
+    public int interestPer10 = 1;
+    public int maxInterest = 5;
+
+    [Header("Round Flow")]
+    public bool autoRollOnNewRound = true;
+    public bool autoAdvanceRound = false;
+    public float roundEndDelay = 1.0f;
+
+    private int lastRewardeRound = 0;
+    private bool lastRoundPlayerWin = false;
+
     private void Start()
     {
         GenerateGrid();
@@ -259,8 +274,19 @@ public class GridManager : MonoBehaviour
         }
         if (!playerAlive || !enemyAlive)
         {
-            battleState = BattleState.End;
-            Debug.Log($"Round {roundIndex} Result: {(playerAlive ? "Player win" : "Enemy Win")}");
+            if (battleState != BattleState.End)
+            {
+                battleState = BattleState.End;
+
+                lastRoundPlayerWin = playerAlive;
+                Debug.Log($"round {roundIndex} Result: {(lastRoundPlayerWin ? "Player win" : "Enemy Win")}");
+
+                ApplyRoundIncome(lastRoundPlayerWin);
+                CleanupAfterRound();
+
+                if (autoAdvanceRound)
+                    StartCoroutine(CoprepareNextRound(roundEndDelay));
+            }
             return true;
         }
         return false;
@@ -269,7 +295,15 @@ public class GridManager : MonoBehaviour
     {
         roundIndex++;
         battleState = BattleState.Setup;
-        Debug.Log($"Prepare Round {roundIndex}");
+
+        if (autoRollOnNewRound && shop != null)
+            shop.Roll();
+        Debug.Log($"Prepare Round {roundIndex}| Gold={gold} | AutoRoll={(autoRollOnNewRound ? "ON" : "OFF")}");
+    }
+    private IEnumerator CoprepareNextRound(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        PrepareNextRound();
     }
     /*
     private void AutoPlaceUnits()
@@ -456,5 +490,44 @@ public class GridManager : MonoBehaviour
         selectedUnit.transform.position = selectedTile.transform.position + Vector3.up * 0.5f;
 
         Debug.Log("Unit moved to tile");
+    }
+    private void ApplyRoundIncome(bool playerWin)
+    {
+        if ((lastRewardeRound == roundIndex)) return;
+        lastRewardeRound = roundIndex;
+
+        int interest = Mathf.Min(maxInterest, (gold / 10) * interestPer10);
+        int bonus = playerWin ? winBonus : lossBonus;
+
+        int income = baseIncome + interest + bonus;
+        gold += income;
+
+        Debug.Log($"<color=green>[Income]</color> Round {roundIndex}| base={baseIncome}, interest={interest}, bonus={bonus} => +{income} | Gold={gold}");
+    }
+    private void CleanupAfterRound()
+    {
+        foreach (Unit u in FindObjectsOfType<Unit>())
+        {
+            if (u == null) continue;
+            if (u.team == TeamType.Enemy)
+            {
+                ClearTileReference(u);
+                Destroy(u.gameObject);
+            }
+
+            u.currentTarget = null;
+            u.nextRetargetTime = 0f;
+        }
+
+        foreach(Tile t in  tiles)
+        {
+            if (t == null) continue;
+            if (t.placedUnit == null) continue;
+
+            if (t.placedUnit == null)
+                t.placedUnit = null;
+        }
+
+        Debug.Log("<color=cyan>[RoundEnd]</color> Cleanup done (enemy remvoed, targets removed");
     }
 }
