@@ -7,7 +7,7 @@ public class ShopManager : MonoBehaviour
     [Header("Pool")]
     public List<UnitData> pool = new List<UnitData>();
 
-    [Header("Runtime offer (size 3)")]
+    [Header("Runtime offer (size 5)")]
     public UnitData[] offers = new UnitData[3];
 
     public void Roll()
@@ -18,7 +18,7 @@ public class ShopManager : MonoBehaviour
             return;
         }
 
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < offers.Length; i++)
         {
             offers[i] = pool[Random.Range(0, pool.Count)];
         }
@@ -32,9 +32,14 @@ public class ShopManager : MonoBehaviour
 
     private void DebugOffers()
     {
-        string a = offers[0] ? offers[0].unitId : null;
-        string b = offers[1] ? offers[1].unitId : null;
-        string c = offers[2] ? offers[2].unitId : null;
-        Debug.Log($"[SHOP]1:{a} | 2:{b} | 3:{c}");
+        string msg = "[SHOP] ";
+        for (int i = 0; i < offers.Length; i++)
+        {
+            string id = offers[i] ? offers[i].unitId : "null";
+            msg += $"{i + 1}:{id}";
+            if (i < offers.Length - 1) msg += " | ";
+        }
+        Debug.Log(msg);
     }
+
 }

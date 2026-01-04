@@ -70,6 +70,8 @@ public class GridManager : MonoBehaviour
             if (Input.GetKeyDown(KeyCode.Alpha1)) TryBuyFromShop(0);
             if (Input.GetKeyDown(KeyCode.Alpha2)) TryBuyFromShop(1);
             if (Input.GetKeyDown(KeyCode.Alpha3)) TryBuyFromShop(2);
+            if (Input.GetKeyDown(KeyCode.Alpha4)) TryBuyFromShop(3);
+            if (Input.GetKeyDown(KeyCode.Alpha5)) TryBuyFromShop(4);
 
             if (Input.GetKeyDown(KeyCode.M))
             {
@@ -519,7 +521,7 @@ public class GridManager : MonoBehaviour
             u.nextRetargetTime = 0f;
         }
 
-        foreach(Tile t in  tiles)
+        foreach (Tile t in tiles)
         {
             if (t == null) continue;
             if (t.placedUnit == null) continue;
@@ -530,4 +532,16 @@ public class GridManager : MonoBehaviour
 
         Debug.Log("<color=cyan>[RoundEnd]</color> Cleanup done (enemy remvoed, targets removed");
     }
+    public void UI_RollShop()
+    {
+        if (shop != null) shop.Roll();
+    }
+
+    public void UI_Buy0() => TryBuyFromShop(0);
+    public void UI_Buy1() => TryBuyFromShop(1);
+    public void UI_Buy2() => TryBuyFromShop(2);
+    public void UI_Buy3() => TryBuyFromShop(3);
+    public void UI_Buy4() => TryBuyFromShop(4);
+
+
 }
