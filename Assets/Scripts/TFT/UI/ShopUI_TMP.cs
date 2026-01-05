@@ -4,14 +4,26 @@ using TMPro;
 public class ShopUI_TMP : MonoBehaviour
 {
     [Header("Refs")]
-    public GridManager grid;
-    public ShopManager shop;
+    private GridManager grid;
+    private ShopManager shop;
 
     [Header("TMP Text")]
     public TMP_Text goldText;
-    public TMP_Text[] offerTexts; // size 3
+    public TMP_Text[] offerTexts = new TMP_Text[5]; // size 5
 
-    private void Update()
+    private void Awake()
+    {
+        if (grid == null)
+            grid = FindAnyObjectByType<GridManager>();
+        if (shop == null)
+            shop = FindAnyObjectByType<ShopManager>();
+    }
+    private void Start()
+    {
+        Refresh();
+    }
+
+    public void Refresh()
     {
         if (grid != null && goldText != null)
             goldText.text = $"Gold: {grid.gold}";

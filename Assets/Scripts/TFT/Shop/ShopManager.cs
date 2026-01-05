@@ -8,7 +8,7 @@ public class ShopManager : MonoBehaviour
     public List<UnitData> pool = new List<UnitData>();
 
     [Header("Runtime offer (size 5)")]
-    public UnitData[] offers = new UnitData[3];
+    public UnitData[] offers = new UnitData[5];
 
     public void Roll()
     {

@@ -30,6 +30,7 @@ public class GridManager : MonoBehaviour
     public int gold = 10;
     public ShopManager shop;
     public BenchManager bench;
+    public ShopUI_TMP shopUI;
 
     private Unit selectedUnit;
 
@@ -52,7 +53,11 @@ public class GridManager : MonoBehaviour
     {
         GenerateGrid();
         if (shop != null) shop.Roll();
+        if (shopUI == null) shopUI = FindAnyObjectByType<ShopUI_TMP>();
+
+        shopUI?.Refresh();
         Debug.Log($"Gold : {gold}");
+
     }
     private void Update()
     {
@@ -65,13 +70,14 @@ public class GridManager : MonoBehaviour
                 if (shop != null)
                 {
                     shop.Roll();
+                    shopUI?.Refresh();
                 }
             }
-            if (Input.GetKeyDown(KeyCode.Alpha1)) TryBuyFromShop(0);
-            if (Input.GetKeyDown(KeyCode.Alpha2)) TryBuyFromShop(1);
-            if (Input.GetKeyDown(KeyCode.Alpha3)) TryBuyFromShop(2);
-            if (Input.GetKeyDown(KeyCode.Alpha4)) TryBuyFromShop(3);
-            if (Input.GetKeyDown(KeyCode.Alpha5)) TryBuyFromShop(4);
+            if (Input.GetKeyDown(KeyCode.Alpha1)) UI_Buy(0);
+            if (Input.GetKeyDown(KeyCode.Alpha2)) UI_Buy(1);
+            if (Input.GetKeyDown(KeyCode.Alpha3)) UI_Buy(2);
+            if (Input.GetKeyDown(KeyCode.Alpha4)) UI_Buy(3);
+            if (Input.GetKeyDown(KeyCode.Alpha5)) UI_Buy(4);
 
             if (Input.GetKeyDown(KeyCode.M))
             {
@@ -300,6 +306,7 @@ public class GridManager : MonoBehaviour
 
         if (autoRollOnNewRound && shop != null)
             shop.Roll();
+            shopUI?.Refresh();
         Debug.Log($"Prepare Round {roundIndex}| Gold={gold} | AutoRoll={(autoRollOnNewRound ? "ON" : "OFF")}");
     }
     private IEnumerator CoprepareNextRound(float delay)
@@ -425,6 +432,10 @@ public class GridManager : MonoBehaviour
             SelectTile(tile);
         }
     }
+    public void UI_Buy(int offerIndex)
+    {
+        TryBuyFromShop(offerIndex);
+    }
 
     private void TryBuyFromShop(int offerIndex)
     {
@@ -459,6 +470,7 @@ public class GridManager : MonoBehaviour
             return;
         }
         gold -= data.cost;
+        shopUI?.Refresh();
         Debug.Log($"BUY {data.unitId} (cost {data.cost}) => Gold: {gold}");
     }
 
@@ -536,12 +548,4 @@ public class GridManager : MonoBehaviour
     {
         if (shop != null) shop.Roll();
     }
-
-    public void UI_Buy0() => TryBuyFromShop(0);
-    public void UI_Buy1() => TryBuyFromShop(1);
-    public void UI_Buy2() => TryBuyFromShop(2);
-    public void UI_Buy3() => TryBuyFromShop(3);
-    public void UI_Buy4() => TryBuyFromShop(4);
-
-
 }
