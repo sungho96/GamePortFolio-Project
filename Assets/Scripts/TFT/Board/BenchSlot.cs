@@ -13,6 +13,14 @@ public class BenchSlot : MonoBehaviour
     {
         placedUnit = unit;
         unit.transform.position = transform.position + Vector3.up * 0.5f;
+
+        var u = unit.GetComponent<Unit>();
+        if (u != null)
+        {
+            u.SetInBattle(false);
+            u.currentTarget = null;
+            u.nextRetargetTime = 0f;
+        }
     }
 
     public GameObject Take()

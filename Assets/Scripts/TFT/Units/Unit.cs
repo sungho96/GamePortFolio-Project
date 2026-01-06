@@ -47,11 +47,12 @@ public class Unit : MonoBehaviour
     [Header("Targeting")]
     public Unit currentTarget;
 
-    [Tooltip("Å¸°Ù ÀçÅ½»ö ÃÖ¼Ò °£°Ý")]
+    [Tooltip("Å¸ï¿½ï¿½ ï¿½ï¿½Å½ï¿½ï¿½ ï¿½Ö¼ï¿½ ï¿½ï¿½ï¿½ï¿½")]
     public float retargetInterval = 0.25f;
 
     [HideInInspector]
     public float nextRetargetTime = 0f;
+    public bool InBattle { get; private set; } = true;
 
     public void Init(TeamType teamType, int round)
     {
@@ -135,7 +136,7 @@ public class Unit : MonoBehaviour
         Vector3 desired = dir * moveSpeed;
         Vector3 steering = separtion;
 
-        // ³Ê¹« »¡¶óÁöÁö ¾Ê°Ô Á¦ÇÑ
+        // ï¿½Ê¹ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê°ï¿½ ï¿½ï¿½ï¿½ï¿½
         Vector3 velocity = desired + separtion;
 
         velocity = Vector3.ClampMagnitude(velocity, moveSpeed);
@@ -240,4 +241,15 @@ public class Unit : MonoBehaviour
 
         rend.material.color = original;
     }
+
+    public void SetInBattle(bool value)
+    {
+        InBattle = value;
+        if (!InBattle)
+        {
+            currentTarget = null;
+            isAttacking = false;
+        }
+    }
+
 }

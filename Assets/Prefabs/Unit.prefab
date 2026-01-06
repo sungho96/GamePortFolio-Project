@@ -162,6 +162,7 @@ GameObject:
   - component: {fileID: 2557165089607162798}
   - component: {fileID: 463011421623945627}
   - component: {fileID: 622428599072613799}
+  - component: {fileID: 3531245198549286447}
   m_Layer: 0
   m_Name: Unit
   m_TagString: Untagged
@@ -279,6 +280,7 @@ MonoBehaviour:
   moveSpeed: 2.5
   separationRadius: 0.6
   separationForce: 2
+  isAttacking: 0
   baseHp: 10
   baseAttack: 2
   unitId: Default
@@ -290,6 +292,21 @@ MonoBehaviour:
   attackCooldownFill: {fileID: 3520799264603574364}
   hpLerpSpeed: 8
   damagePopupPrefab: {fileID: 5010376025748117774, guid: e0820ae62dcad9742b492f75246ede96, type: 3}
+  currentTarget: {fileID: 0}
+  retargetInterval: 0.25
+  nextRetargetTime: 0
+--- !u!114 &3531245198549286447
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5083062006535283289}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb56b186a6991745f9b53e5980a4ac80, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &6676665596081574151
 GameObject:
   m_ObjectHideFlags: 0

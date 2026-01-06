@@ -9,6 +9,7 @@ public class GridManager : MonoBehaviour
     public int width = 7;
     public int height = 4;
     public float tileSize = 1f;
+    public LayerMask tileLayerMask;
 
     [Header("References")]
     public Tile tilePrefab;
@@ -26,7 +27,7 @@ public class GridManager : MonoBehaviour
     public int hpIncreasePerRound = 2;
     public int damageIncreaseRound = 1;
 
-    [Header("Day14 - Economy/shop/Bench")]
+    [Header("Economy/shop/Bench")]
     public int gold = 10;
     public ShopManager shop;
     public BenchManager bench;
@@ -79,10 +80,6 @@ public class GridManager : MonoBehaviour
             if (Input.GetKeyDown(KeyCode.Alpha4)) UI_Buy(3);
             if (Input.GetKeyDown(KeyCode.Alpha5)) UI_Buy(4);
 
-            if (Input.GetKeyDown(KeyCode.M))
-            {
-                TryMoveSelectedUnitToSelectedTile();
-            }
             if (Input.GetKeyDown(KeyCode.P))
             {
                 currentTeam = TeamType.Player;
@@ -169,6 +166,7 @@ public class GridManager : MonoBehaviour
 
         Unit unit = go.GetComponent<Unit>();
         unit.Init(currentTeam, roundIndex);
+        unit.SetInBattle(true);
 
         selectedTile.placedUnit = go;
         TryMergrAfterSpawn(unit);
@@ -194,6 +192,9 @@ public class GridManager : MonoBehaviour
         {
             if (unit == null || unit.IsDead())
                 continue;
+
+            if (!unit.InBattle) continue;
+             
             bool needRetarget = unit.currentTarget == null || unit.currentTarget.IsDead();
 
             if(needRetarget && Time.time >= unit.nextRetargetTime)
@@ -305,8 +306,10 @@ public class GridManager : MonoBehaviour
         battleState = BattleState.Setup;
 
         if (autoRollOnNewRound && shop != null)
+        {
             shop.Roll();
             shopUI?.Refresh();
+        }
         Debug.Log($"Prepare Round {roundIndex}| Gold={gold} | AutoRoll={(autoRollOnNewRound ? "ON" : "OFF")}");
     }
     private IEnumerator CoprepareNextRound(float delay)
@@ -340,6 +343,8 @@ public class GridManager : MonoBehaviour
 
         Unit unit = go.GetComponent<Unit>();
         unit.Init(team, roundIndex);
+        unit.SetInBattle(true);
+
         unit.maxHp += (roundIndex - 1) * hpIncreasePerRound;
         unit.currentHp = unit.maxHp;
 
@@ -399,7 +404,7 @@ public class GridManager : MonoBehaviour
 
         keep.IncreaseStar(roundIndex);
     }
-    private void ClearTileReference(Unit unit)
+    public void ClearTileReference(Unit unit)
     {
         if (unit == null) return;
 
@@ -474,37 +479,6 @@ public class GridManager : MonoBehaviour
         Debug.Log($"BUY {data.unitId} (cost {data.cost}) => Gold: {gold}");
     }
 
-    private void TryMoveSelectedUnitToSelectedTile()
-    {
-        if(selectedUnit ==null)
-        {
-            Debug.Log("No unit selected.");
-            return;
-        }
-        if(selectedTile == null)
-        {
-            Debug.Log("No tile selected");
-            return;
-        }
-        var slot = bench != null ? bench.GetSlotByunit(selectedUnit.gameObject) : null;
-        if (slot != null)
-        {
-            slot.placedUnit = null;
-        }
-
-        foreach (Tile t in tiles)
-        {
-            if (t != null && t.placedUnit == selectedUnit.gameObject)
-            {
-                t.placedUnit = null;
-                break;
-            }
-        }
-        selectedTile.placedUnit = selectedUnit.gameObject;
-        selectedUnit.transform.position = selectedTile.transform.position + Vector3.up * 0.5f;
-
-        Debug.Log("Unit moved to tile");
-    }
     private void ApplyRoundIncome(bool playerWin)
     {
         if ((lastRewardeRound == roundIndex)) return;
@@ -544,8 +518,23 @@ public class GridManager : MonoBehaviour
 
         Debug.Log("<color=cyan>[RoundEnd]</color> Cleanup done (enemy remvoed, targets removed");
     }
-    public void UI_RollShop()
+    public void UI_Roll()
     {
-        if (shop != null) shop.Roll();
+        if (shop == null) return;
+
+        shop.Roll();
+
+        shopUI?.Refresh();
     }
+    public Tile GetTileUnderWorld(Vector3 worldPos)
+    {
+        Ray ray = new Ray(worldPos + Vector3.up * 5f, Vector3.down);
+        if (Physics.Raycast(ray, out RaycastHit hit, 20f, tileLayerMask))
+        {
+            return hit.collider.GetComponent<Tile>();
+        }
+        return null;
+    }
+
+
 }
