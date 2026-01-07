@@ -63,67 +63,51 @@ public class DragUnit : MonoBehaviour
         }
     }
 
-private void OnMouseUp()
-{
-    isDragging = false;
-
-    if (grid == null)
-        grid = FindAnyObjectByType<GridManager>();
-
-    Debug.Log($"[DragUnit] OnMouseUp - pos={transform.position} grid={(grid != null)}");
-
-    if (grid == null)
+    private void OnMouseUp()
     {
-        Debug.Log("[DragUnit] FAIL: grid is null -> revert");
-        transform.position = startPos;
-        return;
+        isDragging = false;
+
+        if (grid == null)
+            grid = FindAnyObjectByType<GridManager>();
+
+        if (grid == null)
+        {
+            transform.position = startPos;
+            return;
+        }
+        if (unit == null)
+            unit = GetComponent<Unit>();
+
+            Tile tile = grid.GetTileUnderWorld(transform.position);
+
+        if (tile != null && tile.isPlaceable && tile.placedUnit == null)
+            {
+                if (startBenchSlot != null)
+                    startBenchSlot.placedUnit = null;
+
+                grid.ClearTileReference(unit);
+
+                tile.placedUnit = gameObject;
+                transform.position = tile.transform.position + Vector3.up * 0.5f;
+
+                unit.SetInBattle(true);
+                return;
+            }
+            BenchSlot slot = grid.GetBenchSlotUnderWorld(transform.position);
+            if(slot != null && !slot.HasUnit)
+            {
+                grid.ClearTileReference(unit);
+
+                if (startBenchSlot != null && startBenchSlot != slot)
+                    startBenchSlot.placedUnit = null;
+
+                slot.place(gameObject);
+
+                unit.SetInBattle(false);
+                return;
+            }
+        transform.position = startPos;    
+
     }
-
-    Tile tile = grid.GetTileUnderWorld(transform.position);
-    Debug.Log($"[DragUnit] ray -> tile={(tile != null)}");
-
-    if (tile == null)
-    {
-        Debug.Log("[DragUnit] FAIL: tile is null (raycast didn't hit Tile) -> revert");
-        transform.position = startPos;
-        return;
-    }
-
-    Debug.Log($"[DragUnit] tile.isPlaceable={tile.isPlaceable}");
-
-    if (!tile.isPlaceable)
-    {
-        Debug.Log("[DragUnit] FAIL: tile is not placeable -> revert");
-        transform.position = startPos;
-        return;
-    }
-
-    Debug.Log($"[DragUnit] tile.placedUnit={(tile.placedUnit != null ? tile.placedUnit.name : "null")}");
-
-    if (tile.placedUnit != null)
-    {
-        Debug.Log("[DragUnit] FAIL: tile already occupied -> revert");
-        transform.position = startPos;
-        return;
-    }
-
-    Debug.Log($"[DragUnit] startBenchSlot={(startBenchSlot != null ? startBenchSlot.name : "null")}");
-
-    // ---- SUCCESS PATH ----
-    if (startBenchSlot != null)
-        startBenchSlot.placedUnit = null;
-
-    if (unit == null)
-        unit = GetComponent<Unit>();
-
-    grid.ClearTileReference(unit);
-
-    tile.placedUnit = gameObject;
-    transform.position = tile.transform.position + Vector3.up * 0.5f;
-
-    unit.SetInBattle(true);
-
-    Debug.Log($"[DragUnit] SUCCESS: dropped to tile -> {tile.name}");
-}
 
 }

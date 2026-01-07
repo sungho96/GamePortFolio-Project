@@ -9,8 +9,7 @@ public class GridManager : MonoBehaviour
     public int width = 7;
     public int height = 4;
     public float tileSize = 1f;
-    public LayerMask tileLayerMask;
-
+    
     [Header("References")]
     public Tile tilePrefab;
     public GameObject unitPrefab;
@@ -50,6 +49,10 @@ public class GridManager : MonoBehaviour
     private int lastRewardeRound = 0;
     private bool lastRoundPlayerWin = false;
 
+    [Header("Drag Drop Raycast")]
+    public LayerMask tileLayerMask;
+    public LayerMask benchSlotLayerMask;
+
     private void Start()
     {
         GenerateGrid();
@@ -70,8 +73,11 @@ public class GridManager : MonoBehaviour
             {
                 if (shop != null)
                 {
-                    shop.Roll();
-                    shopUI?.Refresh();
+                    if (gold >= 2)
+                    {
+                        gold -= 2;
+                        UI_Roll();
+                    }
                 }
             }
             if (Input.GetKeyDown(KeyCode.Alpha1)) UI_Buy(0);
@@ -307,8 +313,7 @@ public class GridManager : MonoBehaviour
 
         if (autoRollOnNewRound && shop != null)
         {
-            shop.Roll();
-            shopUI?.Refresh();
+            UI_Roll();
         }
         Debug.Log($"Prepare Round {roundIndex}| Gold={gold} | AutoRoll={(autoRollOnNewRound ? "ON" : "OFF")}");
     }
@@ -532,6 +537,16 @@ public class GridManager : MonoBehaviour
         if (Physics.Raycast(ray, out RaycastHit hit, 20f, tileLayerMask))
         {
             return hit.collider.GetComponent<Tile>();
+        }
+        return null;
+    }
+
+    public BenchSlot GetBenchSlotUnderWorld(Vector3 worldPos)
+    {
+        Ray ray = new Ray(worldPos + Vector3.up * 5f, Vector3.down);
+        if (Physics.Raycast(ray, out RaycastHit hit, 20f, benchSlotLayerMask))
+        {
+            return hit.collider.GetComponentInParent<BenchSlot>();
         }
         return null;
     }
