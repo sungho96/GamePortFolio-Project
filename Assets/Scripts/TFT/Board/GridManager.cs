@@ -33,6 +33,8 @@ public class GridManager : MonoBehaviour
     public ShopUI_TMP shopUI;
 
     private Unit selectedUnit;
+    private int nextSpawnSeq = 1;
+    private Dictionary<Unit, int> spawnSeq = new Dictionary<Unit, int>();
 
     [Header("Round Income")]
     public int baseIncome = 5;
@@ -172,6 +174,7 @@ public class GridManager : MonoBehaviour
 
         Unit unit = go.GetComponent<Unit>();
         unit.Init(currentTeam, roundIndex);
+        RegisterSpawnSeq(unit);
         unit.SetInBattle(true);
 
         selectedTile.placedUnit = go;
@@ -348,6 +351,7 @@ public class GridManager : MonoBehaviour
 
         Unit unit = go.GetComponent<Unit>();
         unit.Init(team, roundIndex);
+        RegisterSpawnSeq(unit);
         unit.SetInBattle(true);
 
         unit.maxHp += (roundIndex - 1) * hpIncreasePerRound;
@@ -374,6 +378,7 @@ public class GridManager : MonoBehaviour
     */
     private void TryMergrAfterSpawn(Unit spawned)
     {
+        if (spawned.star >=3) return;
         if (spawned == null) return;
 
         List<Unit> candidates = new List<Unit>();
@@ -388,7 +393,8 @@ public class GridManager : MonoBehaviour
 
         if (candidates.Count < 3) return;
 
-        Unit keep = spawned;
+        Unit keep = PickKeepByPriority(candidates);
+        
         Unit remove1 = null;
         Unit remove2 = null;
 
@@ -408,6 +414,7 @@ public class GridManager : MonoBehaviour
         Destroy(remove2.gameObject);
 
         keep.IncreaseStar(roundIndex);
+        TryMergrAfterSpawn(keep);
     }
     public void ClearTileReference(Unit unit)
     {
@@ -472,6 +479,7 @@ public class GridManager : MonoBehaviour
         unit.baseAttack = data.baseAttack;
 
         unit.Init(TeamType.Player, roundIndex);
+        RegisterSpawnSeq(unit);
 
         if (!bench.TryPlaceToEmptySlot(go))
         {
@@ -479,6 +487,7 @@ public class GridManager : MonoBehaviour
             Debug.Log("Bench is full");
             return;
         }
+        TryMergrAfterSpawn(unit);
         gold -= data.cost;
         shopUI?.Refresh();
         Debug.Log($"BUY {data.unitId} (cost {data.cost}) => Gold: {gold}");
@@ -550,6 +559,65 @@ public class GridManager : MonoBehaviour
         }
         return null;
     }
+    private void RegisterSpawnSeq(Unit u)
+    {
+        if (u == null) return;
+        if (spawnSeq.ContainsKey(u)) return;
+        spawnSeq[u] = nextSpawnSeq++;
+    }
+    private Unit PickKeepByPriority(List<Unit> candidates)
+    {
+        Unit bestBoard = null;
+        int bestSeq = int.MaxValue;
 
+        // 1) 보드에 있는 유닛이 하나라도 있으면 -> 보드 우선
+        foreach (var u in candidates)
+        {
+            if (u == null) continue;
+            if (IsOnBoard(u))
+            {
+                int seq = spawnSeq.TryGetValue(u, out var s) ? s : int.MaxValue;
+                if (seq < bestSeq)
+                {
+                    bestSeq = seq;
+                    bestBoard = u;
+                }
+            }
+        }
+        if (bestBoard != null)
+            return bestBoard;
 
+        if (bench != null)
+        {
+            Unit bestBench = null;
+            int bestIndex = int.MaxValue;
+
+            foreach (var u in candidates)
+            {
+                if (u == null) continue;
+                BenchSlot slot = bench.GetSlotByunit(u.gameObject);
+                if (slot == null) continue;
+
+                if (slot.index < bestIndex)
+                {
+                    bestIndex = slot.index;
+                    bestBench = u;
+                }
+            }
+            if (bestBench != null)
+                return bestBench;
+        }
+        return candidates[0];
+    }
+
+    private bool IsOnBoard(Unit u)
+    {
+        if (u == null || tiles == null) return false;
+        foreach (Tile t in tiles)
+        {
+            if (t == null) continue;
+            if (t.placedUnit == u.gameObject) return true;
+        }
+        return false;
+    }
 }

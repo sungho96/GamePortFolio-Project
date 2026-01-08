@@ -47,7 +47,7 @@ public class Unit : MonoBehaviour
     [Header("Targeting")]
     public Unit currentTarget;
 
-    [Tooltip("Ÿ�� ��Ž�� �ּ� ����")]
+    [Tooltip("타겟 재탐색 최소 간격")]
     public float retargetInterval = 0.25f;
 
     [HideInInspector]
