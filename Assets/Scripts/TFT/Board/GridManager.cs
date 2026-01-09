@@ -471,12 +471,17 @@ public class GridManager : MonoBehaviour
             return;
         }
 
-        GameObject go = Instantiate(unitPrefab, Vector3.zero, Quaternion.identity);
+        GameObject prefabToSpawn = (data.prefab != null) ? data.prefab : unitPrefab;
+        GameObject go = Instantiate(prefabToSpawn, Vector3.zero, Quaternion.identity);
         Unit unit = go.GetComponent<Unit>();
 
         unit.unitId = data.unitId;
         unit.baseHp = data.baseHp;
         unit.baseAttack = data.baseAttack;
+
+        unit.attackRange = data.attackRange;
+        unit.attackInterval = data.attackInterval;
+        unit.moveSpeed = data.moveSpeed;
 
         unit.Init(TeamType.Player, roundIndex);
         RegisterSpawnSeq(unit);
