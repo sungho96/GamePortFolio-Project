@@ -25,6 +25,8 @@ public class DragUnit : MonoBehaviour
         if (grid == null)
             grid = FindAnyObjectByType<GridManager>();
 
+        if (grid != null && !grid.IsSetup) return;
+
         if (grid != null && grid.bench != null)
             startBenchSlot = grid.bench.GetSlotByunit(gameObject);
         else
@@ -75,39 +77,80 @@ public class DragUnit : MonoBehaviour
             transform.position = startPos;
             return;
         }
+        if (grid != null && grid.IsSetup)
+        {
+            if (unit == null) unit = GetComponent<Unit>();
+
+            if (IsOverSellZone())
+            {
+                if (grid.TrySellUnit(unit))
+                    return;
+                transform.position = startPos;
+                return;
+            }
+        }
         if (unit == null)
             unit = GetComponent<Unit>();
 
-            Tile tile = grid.GetTileUnderWorld(transform.position);
+        Tile tile = grid.GetTileUnderWorld(transform.position);
 
         if (tile != null && tile.isPlaceable && tile.placedUnit == null)
-            {
-                if (startBenchSlot != null)
-                    startBenchSlot.placedUnit = null;
+        {
+            if (startBenchSlot != null)
+                startBenchSlot.placedUnit = null;
 
-                grid.ClearTileReference(unit);
+            grid.ClearTileReference(unit);
 
-                tile.placedUnit = gameObject;
-                transform.position = tile.transform.position + Vector3.up * 0.5f;
+            tile.placedUnit = gameObject;
+            transform.position = tile.transform.position + Vector3.up * 0.5f;
 
-                unit.SetInBattle(true);
-                return;
-            }
-            BenchSlot slot = grid.GetBenchSlotUnderWorld(transform.position);
-            if(slot != null && !slot.HasUnit)
-            {
-                grid.ClearTileReference(unit);
+            unit.SetInBattle(true);
+            return;
+        }
+        BenchSlot slot = grid.GetBenchSlotUnderWorld(transform.position);
+        if (slot != null && !slot.HasUnit)
+        {
+            grid.ClearTileReference(unit);
 
-                if (startBenchSlot != null && startBenchSlot != slot)
-                    startBenchSlot.placedUnit = null;
+            if (startBenchSlot != null && startBenchSlot != slot)
+                startBenchSlot.placedUnit = null;
 
-                slot.place(gameObject);
+            slot.place(gameObject);
 
-                unit.SetInBattle(false);
-                return;
-            }
-        transform.position = startPos;    
+            unit.SetInBattle(false);
+            return;
+        }
+        transform.position = startPos;
+    }
 
+    private void OnMouseOver()
+    {
+        if (grid == null || !grid.IsSetup) return;
+
+        if(Input.GetMouseButtonDown(1))
+        {
+            if(unit == null) unit = GetComponent<Unit>();
+            grid.TrySellUnit(unit);
+           
+        }
+
+    }
+    private bool IsOverSellZone()
+    {
+        if (grid == null)
+            grid = FindAnyObjectByType<GridManager>();
+
+        if (grid == null) return false;
+
+        Ray ray = new Ray(transform.position+Vector3.up *5f, Vector3.down );
+        return Physics.Raycast(
+            ray,
+            out _,
+            20f,
+            grid.sellZoneLayerMask,
+            QueryTriggerInteraction.Collide
+        );
+        
     }
 
 }

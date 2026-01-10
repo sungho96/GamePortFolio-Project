@@ -6,6 +6,7 @@ using UnityEngine;
 
 public class Unit : MonoBehaviour
 {
+    public UnitData data;
     public TeamType team;
     [Header("Stats")]
     public int maxHp = 10;
@@ -17,6 +18,7 @@ public class Unit : MonoBehaviour
     public float separationRadius = 0.6f;
     public float separationForce = 2.0f;
     private float attackTimer;
+
     [Header("Action State")]
     [SerializeField] private bool isAttacking;
     public bool IsAttacking => isAttacking;
@@ -26,6 +28,7 @@ public class Unit : MonoBehaviour
     public int baseAttack = 2;
 
     [Header("Merge")]
+    public int cost = 1;
     public string unitId = "Default";
     public int star = 1;
 
@@ -54,6 +57,21 @@ public class Unit : MonoBehaviour
     public float nextRetargetTime = 0f;
     public bool InBattle { get; private set; } = true;
 
+    public void ApplyData(UnitData d)
+    {
+        data = d;
+        if (data != null) return;
+
+        cost = data.cost;
+        unitId = data.unitId;
+        baseHp = data.baseHp;
+        baseAttack = data.baseAttack;
+
+        attackRange = data.attackRange;
+        attackInterval = data.attackInterval;
+        moveSpeed = data.moveSpeed;
+        
+    }
     public void Init(TeamType teamType, int round)
     {
         team = teamType;
@@ -136,7 +154,6 @@ public class Unit : MonoBehaviour
         Vector3 desired = dir * moveSpeed;
         Vector3 steering = separtion;
 
-        // �ʹ� �������� �ʰ� ����
         Vector3 velocity = desired + separtion;
 
         velocity = Vector3.ClampMagnitude(velocity, moveSpeed);
@@ -251,5 +268,18 @@ public class Unit : MonoBehaviour
             isAttacking = false;
         }
     }
+    public int GetSellRefund()
+    {
+        int copies;
 
+        if (star == 1)
+            copies = 1;
+        else if (star == 2)
+            copies = 3;
+        else
+            copies = 9;
+
+        int invested = cost * copies;
+        return Mathf.Max(1, invested - 1);
+    }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
@@ -9,7 +10,7 @@ public class GridManager : MonoBehaviour
     public int width = 7;
     public int height = 4;
     public float tileSize = 1f;
-    
+
     [Header("References")]
     public Tile tilePrefab;
     public GameObject unitPrefab;
@@ -18,6 +19,7 @@ public class GridManager : MonoBehaviour
     private TeamType currentTeam = TeamType.Player;
     private BattleState battleState = BattleState.Setup;
     private int roundIndex = 1;
+    public bool IsSetup => battleState == BattleState.Setup;
 
     [Header("Difficulty Scaling")]
     public int baseUnitCount = 4;
@@ -54,6 +56,7 @@ public class GridManager : MonoBehaviour
     [Header("Drag Drop Raycast")]
     public LayerMask tileLayerMask;
     public LayerMask benchSlotLayerMask;
+    public LayerMask sellZoneLayerMask;
 
     private void Start()
     {
@@ -70,7 +73,15 @@ public class GridManager : MonoBehaviour
         if (battleState == BattleState.Setup)
         {
             HandleClick_SelectTileOrUnit();
-
+            if (Input.GetMouseButton(1))
+            {
+                Unit u = GetUnitUnderMouse();
+                if (u != null)
+                {
+                    TrySellUnit(u);
+                }
+                return;
+            }
             if (Input.GetKeyDown(KeyCode.R))
             {
                 if (shop != null)
@@ -203,10 +214,10 @@ public class GridManager : MonoBehaviour
                 continue;
 
             if (!unit.InBattle) continue;
-             
+
             bool needRetarget = unit.currentTarget == null || unit.currentTarget.IsDead();
 
-            if(needRetarget && Time.time >= unit.nextRetargetTime)
+            if (needRetarget && Time.time >= unit.nextRetargetTime)
             {
                 unit.currentTarget = FindNearestEnemy(unit, units);
                 unit.nextRetargetTime = Time.time + unit.retargetInterval;
@@ -378,7 +389,7 @@ public class GridManager : MonoBehaviour
     */
     private void TryMergrAfterSpawn(Unit spawned)
     {
-        if (spawned.star >=3) return;
+        if (spawned.star >= 3) return;
         if (spawned == null) return;
 
         List<Unit> candidates = new List<Unit>();
@@ -394,7 +405,7 @@ public class GridManager : MonoBehaviour
         if (candidates.Count < 3) return;
 
         Unit keep = PickKeepByPriority(candidates);
-        
+
         Unit remove1 = null;
         Unit remove2 = null;
 
@@ -449,6 +460,17 @@ public class GridManager : MonoBehaviour
             SelectTile(tile);
         }
     }
+    private Unit GetUnitUnderMouse()
+    {
+        if (Camera.main == null) return null;
+
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        if (Physics.Raycast(ray, out RaycastHit hit, 100f))
+        {
+            return hit.collider.GetComponentInParent<Unit>();
+        }
+        return null;
+    }
     public void UI_Buy(int offerIndex)
     {
         TryBuyFromShop(offerIndex);
@@ -475,15 +497,9 @@ public class GridManager : MonoBehaviour
         GameObject go = Instantiate(prefabToSpawn, Vector3.zero, Quaternion.identity);
         Unit unit = go.GetComponent<Unit>();
 
-        unit.unitId = data.unitId;
-        unit.baseHp = data.baseHp;
-        unit.baseAttack = data.baseAttack;
-
-        unit.attackRange = data.attackRange;
-        unit.attackInterval = data.attackInterval;
-        unit.moveSpeed = data.moveSpeed;
-
+        unit.ApplyData(data);
         unit.Init(TeamType.Player, roundIndex);
+        unit.SetInBattle(false);
         RegisterSpawnSeq(unit);
 
         if (!bench.TryPlaceToEmptySlot(go))
@@ -497,6 +513,29 @@ public class GridManager : MonoBehaviour
         shopUI?.Refresh();
         Debug.Log($"BUY {data.unitId} (cost {data.cost}) => Gold: {gold}");
     }
+
+    public bool TrySellUnit(Unit u)
+    {
+        if (u == null) return false;
+        if (!IsSetup) return false;
+
+        int refund = u.GetSellRefund();
+        gold += refund;
+
+        ClearTileReference(u);
+
+        if(bench != null)
+        {
+            var slot = bench.GetSlotByunit(u.gameObject);
+            if (slot != null) slot.placedUnit = null;
+        }
+        Destroy(u.gameObject);
+        shopUI?.Refresh();
+
+        Debug.Log($"[SELL] {u.unitId} cost={u.cost} star={u.star} => +{refund} | Gold={gold}");
+        return true;
+    }
+
 
     private void ApplyRoundIncome(bool playerWin)
     {
@@ -554,6 +593,14 @@ public class GridManager : MonoBehaviour
         }
         return null;
     }
+    public bool IsOverSellZone(Vector3 worldPos)
+    {
+        Ray ray = new Ray(worldPos + Vector3.up * 5f, Vector3.down);
+        bool over = Physics.Raycast(ray, 20f, sellZoneLayerMask);
+        Debug.Log($"[SellZone] over={over}");
+        return over;
+    }
+
 
     public BenchSlot GetBenchSlotUnderWorld(Vector3 worldPos)
     {
@@ -564,6 +611,7 @@ public class GridManager : MonoBehaviour
         }
         return null;
     }
+   
     private void RegisterSpawnSeq(Unit u)
     {
         if (u == null) return;
