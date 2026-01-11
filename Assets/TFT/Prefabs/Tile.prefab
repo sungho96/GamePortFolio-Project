@@ -125,6 +125,6 @@ MonoBehaviour:
   isPlaceable: 0
   placedUnit: {fileID: 0}
   rend: {fileID: 0}
-  placeableColor: {r: 0, g: 1, b: 0, a: 1}
+  placeableColor: {r: 0.17354931, g: 0.49056602, b: 0.49056602, a: 1}
   blockedColor: {r: 1, g: 0, b: 0, a: 1}
   SelectedColor: {r: 0, g: 0, b: 1, a: 1}

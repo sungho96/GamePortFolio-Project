@@ -60,7 +60,7 @@ public class Unit : MonoBehaviour
     public void ApplyData(UnitData d)
     {
         data = d;
-        if (data != null) return;
+        if (data == null) return;
 
         cost = data.cost;
         unitId = data.unitId;

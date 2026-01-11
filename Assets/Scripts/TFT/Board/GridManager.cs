@@ -19,6 +19,8 @@ public class GridManager : MonoBehaviour
     private TeamType currentTeam = TeamType.Player;
     private BattleState battleState = BattleState.Setup;
     private int roundIndex = 1;
+    public DropPreviewMarker previewMarker;
+
     public bool IsSetup => battleState == BattleState.Setup;
 
     [Header("Difficulty Scaling")]
@@ -66,7 +68,7 @@ public class GridManager : MonoBehaviour
 
         shopUI?.Refresh();
         Debug.Log($"Gold : {gold}");
-
+        previewMarker?.Hide();
     }
     private void Update()
     {
@@ -596,9 +598,7 @@ public class GridManager : MonoBehaviour
     public bool IsOverSellZone(Vector3 worldPos)
     {
         Ray ray = new Ray(worldPos + Vector3.up * 5f, Vector3.down);
-        bool over = Physics.Raycast(ray, 20f, sellZoneLayerMask);
-        Debug.Log($"[SellZone] over={over}");
-        return over;
+        return Physics.Raycast(ray, out _, 20f, sellZoneLayerMask, QueryTriggerInteraction.Collide);
     }
 
 

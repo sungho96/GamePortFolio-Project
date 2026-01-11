@@ -10,7 +10,7 @@ public class Tile : MonoBehaviour
     public GameObject placedUnit;
 
     [SerializeField] private Renderer rend;
-    [SerializeField] private Color placeableColor = Color.green;
+    [SerializeField] private Color placeableColor = Color.cyan;
     [SerializeField] private Color blockedColor = Color.red;
     [SerializeField] private Color SelectedColor = Color.blue;
 

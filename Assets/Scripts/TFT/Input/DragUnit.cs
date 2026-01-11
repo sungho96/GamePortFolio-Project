@@ -63,6 +63,7 @@ public class DragUnit : MonoBehaviour
             Vector3 hit = ray.GetPoint(enter);
             transform.position = hit + dragOffset;
         }
+        UpatePreview();
     }
 
     private void OnMouseUp()
@@ -77,6 +78,9 @@ public class DragUnit : MonoBehaviour
             transform.position = startPos;
             return;
         }
+        if (grid != null && grid.previewMarker != null)
+            grid.previewMarker.Hide();
+
         if (grid != null && grid.IsSetup)
         {
             if (unit == null) unit = GetComponent<Unit>();
@@ -137,20 +141,42 @@ public class DragUnit : MonoBehaviour
     }
     private bool IsOverSellZone()
     {
-        if (grid == null)
-            grid = FindAnyObjectByType<GridManager>();
-
+        if (grid == null) grid = FindAnyObjectByType<GridManager>();
         if (grid == null) return false;
-
-        Ray ray = new Ray(transform.position+Vector3.up *5f, Vector3.down );
-        return Physics.Raycast(
-            ray,
-            out _,
-            20f,
-            grid.sellZoneLayerMask,
-            QueryTriggerInteraction.Collide
-        );
-        
+        return grid.IsOverSellZone(transform.position);
     }
+    private void UpatePreview()
+    {
+        if (grid == null) grid = FindAnyObjectByType<GridManager>();
+        if (grid == null || grid.previewMarker == null) return;
+        
+        if (!grid.IsSetup)
+        {
+            grid.previewMarker.Hide();
+            return;
+        }
+        Vector3 p =transform.position;
 
+        if (grid.IsOverSellZone(p))
+        {
+            grid.previewMarker.Show(p, DropPreviewMarker.Mode.Sell, true);
+            return;
+        }
+
+        Tile tile = grid.GetTileUnderWorld(p);
+        if (tile != null)
+        {
+            bool vaild = tile.isPlaceable && tile.placedUnit == null;
+            grid.previewMarker.Show(tile.transform.position, DropPreviewMarker.Mode.Board, vaild);
+            return;
+        }
+        BenchSlot slot = grid.GetBenchSlotUnderWorld(p);
+        if (slot != null)
+        {
+            bool vaild = !slot.HasUnit;
+            grid.previewMarker.Show(slot.transform.position, DropPreviewMarker.Mode.Bench, vaild);
+            return;
+        }
+        grid.previewMarker.Hide();
+    }
 }
