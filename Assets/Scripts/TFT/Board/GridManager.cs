@@ -51,6 +51,9 @@ public class GridManager : MonoBehaviour
     public bool autoRollOnNewRound = true;
     public bool autoAdvanceRound = false;
     public float roundEndDelay = 1.0f;
+    //batch tf cache
+    private readonly Dictionary<Unit, Vector3> cachedSetupPos = new Dictionary<Unit, Vector3>();
+    private readonly Dictionary<Unit, Quaternion> cachedSetupRot = new Dictionary<Unit, Quaternion>();
 
     private int lastRewardeRound = 0;
     private bool lastRoundPlayerWin = false;
@@ -59,6 +62,9 @@ public class GridManager : MonoBehaviour
     public LayerMask tileLayerMask;
     public LayerMask benchSlotLayerMask;
     public LayerMask sellZoneLayerMask;
+
+    [Header("Wave Table")]
+    public WaveTableSo waveTable;
 
     private void Start()
     {
@@ -132,6 +138,7 @@ public class GridManager : MonoBehaviour
             }
         }
     }
+
     private void GenerateGrid()
     {
         tiles = new Tile[width, height];
@@ -158,6 +165,7 @@ public class GridManager : MonoBehaviour
             }
         }
     }
+
     private void SelectTile(Tile tile)
     {
         if (selectedTile != null)
@@ -169,11 +177,13 @@ public class GridManager : MonoBehaviour
         Debug.Log($"Selected Tile: ({tile.gridPos.x}, {tile.gridPos.y})");
 
     }
+
     private void SelectUnit(Unit u)
     {
         selectedUnit = u;
         Debug.Log($"Selected Unit: team={u.team}, id={u.unitId}, star={u.star}");
     }
+
     private void TryPlaceUnit()
     {
         if (selectedTile == null || !selectedTile.isPlaceable)
@@ -193,6 +203,7 @@ public class GridManager : MonoBehaviour
         selectedTile.placedUnit = go;
         TryMergrAfterSpawn(unit);
     }
+
     private void TryRemoveUnit()
     {
         if (selectedTile == null || selectedTile.placedUnit == null)
@@ -201,11 +212,17 @@ public class GridManager : MonoBehaviour
         Destroy(selectedTile.placedUnit);
         selectedTile.placedUnit = null;
     }
+
     private void StartBattle()
     {
+        CachePlacementBeforeBattle();
+
+        SpawnEnemyWaveForRound(roundIndex);
+
         battleState = BattleState.Battle;
         Debug.Log("Battle Start");
     }
+
     private void UpdateBattle()
     {
         List<Unit> units = FindAllUnits();
@@ -255,6 +272,7 @@ public class GridManager : MonoBehaviour
     {
         return new List<Unit>(FindObjectsOfType<Unit>());
     }
+
     private Unit FindNearestEnemy(Unit unit, List<Unit> units)
     {
         Unit nearest = null;
@@ -274,6 +292,7 @@ public class GridManager : MonoBehaviour
         }
         return nearest;
     }
+
     private void CleanupDeadUnits(List<Unit> units)
     {
         foreach (Unit unit in units)
@@ -322,10 +341,13 @@ public class GridManager : MonoBehaviour
         }
         return false;
     }
+
     private void PrepareNextRound()
     {
         roundIndex++;
         battleState = BattleState.Setup;
+
+        RestorePlacementForSetup();   
 
         if (autoRollOnNewRound && shop != null)
         {
@@ -333,62 +355,13 @@ public class GridManager : MonoBehaviour
         }
         Debug.Log($"Prepare Round {roundIndex}| Gold={gold} | AutoRoll={(autoRollOnNewRound ? "ON" : "OFF")}");
     }
+
     private IEnumerator CoprepareNextRound(float delay)
     {
         yield return new WaitForSeconds(delay);
         PrepareNextRound();
     }
-    /*
-    private void AutoPlaceUnits()
-    {
-        ClearAllUnits();
-        int spawnCount = baseUnitCount + (roundIndex - 1) * unitIncreasePerRound;
-        spawnCount = Mathf.Min(spawnCount, height);
 
-        for (int y =0; y < spawnCount; y++)
-        {
-            SpawnUnitAt(0,y, TeamType.Player); 
-            SpawnUnitAt(width-1,y,TeamType.Enemy);
-        }
-        Debug.Log($"Round {roundIndex} Auto Placement Done (Units: {spawnCount})");
-    }
-    */
-    private void SpawnUnitAt(int x, int y, TeamType team)
-    {
-        Tile tile = tiles[x, y];
-        if (tile == null || tile.placedUnit != null)
-            return;
-
-        Vector3 pos = tile.transform.position + Vector3.up * 0.5f;
-        GameObject go = Instantiate(unitPrefab, pos, Quaternion.identity);
-
-        Unit unit = go.GetComponent<Unit>();
-        unit.Init(team, roundIndex);
-        RegisterSpawnSeq(unit);
-        unit.SetInBattle(true);
-
-        unit.maxHp += (roundIndex - 1) * hpIncreasePerRound;
-        unit.currentHp = unit.maxHp;
-
-        unit.attackDamage += (roundIndex - 1) * damageIncreaseRound;
-
-        tile.placedUnit = go;
-        TryMergrAfterSpawn(unit);
-    }
-    /*
-    private void ClearAllUnits()
-    {
-        foreach (Unit unit in FindObjectsOfType<Unit>())
-        {
-            Destroy(unit.gameObject);
-        }
-
-        foreach (Tile tile in tiles)
-        {
-            tile.placedUnit = null;
-        }
-    }
-    */
     private void TryMergrAfterSpawn(Unit spawned)
     {
         if (spawned.star >= 3) return;
@@ -429,6 +402,7 @@ public class GridManager : MonoBehaviour
         keep.IncreaseStar(roundIndex);
         TryMergrAfterSpawn(keep);
     }
+    
     public void ClearTileReference(Unit unit)
     {
         if (unit == null) return;
@@ -443,6 +417,7 @@ public class GridManager : MonoBehaviour
             }
         }
     }
+
     private void HandleClick_SelectTileOrUnit()
     {
         if (!Input.GetMouseButtonDown(0)) return;
@@ -462,6 +437,7 @@ public class GridManager : MonoBehaviour
             SelectTile(tile);
         }
     }
+
     private Unit GetUnitUnderMouse()
     {
         if (Camera.main == null) return null;
@@ -473,6 +449,7 @@ public class GridManager : MonoBehaviour
         }
         return null;
     }
+
     public void UI_Buy(int offerIndex)
     {
         TryBuyFromShop(offerIndex);
@@ -538,7 +515,6 @@ public class GridManager : MonoBehaviour
         return true;
     }
 
-
     private void ApplyRoundIncome(bool playerWin)
     {
         if ((lastRewardeRound == roundIndex)) return;
@@ -552,6 +528,7 @@ public class GridManager : MonoBehaviour
 
         Debug.Log($"<color=green>[Income]</color> Round {roundIndex}| base={baseIncome}, interest={interest}, bonus={bonus} => +{income} | Gold={gold}");
     }
+
     private void CleanupAfterRound()
     {
         foreach (Unit u in FindObjectsOfType<Unit>())
@@ -578,6 +555,7 @@ public class GridManager : MonoBehaviour
 
         Debug.Log("<color=cyan>[RoundEnd]</color> Cleanup done (enemy remvoed, targets removed");
     }
+
     public void UI_Roll()
     {
         if (shop == null) return;
@@ -586,6 +564,91 @@ public class GridManager : MonoBehaviour
 
         shopUI?.Refresh();
     }
+
+    public bool IsPlayerZone(Tile t)
+    {
+        if (t == null) return false;
+        int mid = height / 2;
+        return t.gridPos.y < mid;
+    }
+
+    public bool IsEnemyZone(Tile t)
+    {
+        if (t == null) return false;
+        int mid = height / 2;
+        return t.gridPos.y >= mid;
+    }
+
+    private List<Tile> GetEmptyEnemyTiles()
+    {
+        var list = new List<Tile>();
+        foreach (var t in tiles)
+        {
+            if (t == null) continue;
+            if (!t.isPlaceable) continue;
+            if (t.placedUnit != null) continue;
+            if (!IsEnemyZone(t)) continue;
+            list.Add(t);
+        }
+        return list;
+    }
+
+    private void SpawnEnemyWaveForRound(int round)
+    {
+        if (waveTable == null)
+        {
+            Debug.LogWarning("[Wave] waveTable is null");
+            return;
+        }
+
+        var wave = waveTable.GetWave(round);
+        if (wave == null || wave.spawns == null || wave.spawns.Count == 0)
+        {
+            Debug.LogWarning($"[Wave] no wave data for round {round}");
+            return;
+        }
+
+        var emptyTiles = GetEmptyEnemyTiles();
+        int cursor = 0;
+
+        foreach (var entry in wave.spawns)
+        {
+            if (entry == null || entry.unit == null) continue;
+
+            for (int i = 0; i < entry.count; i++)
+            {
+                if (cursor >= emptyTiles.Count)
+                {
+                    Debug.LogWarning("[Wave] Enemy zone is full. Cannot spwan more.");
+                    return;
+                }
+                Tile tile = emptyTiles[cursor++];
+                SpawnUnitOnTile(tile, entry.unit, TeamType.Enemy);
+            }
+        }
+    }
+    
+    private void SpawnUnitOnTile(Tile tile, UnitData data, TeamType team)
+    {
+        if (tile == null || tile.placedUnit != null) return;
+
+        GameObject prefabToSpawn = (data != null && data.prefab != null) ? data.prefab : unitPrefab;
+
+        Vector3 pos = tile.transform.position + Vector3.up * 0.5f;
+        GameObject go = Instantiate(prefabToSpawn, pos, Quaternion.identity);
+
+        Unit u = go.GetComponent<Unit>();
+        if (u == null) return;
+
+        if (data != null) u.ApplyData(data);
+        u.Init(team, roundIndex);
+        RegisterSpawnSeq(u);
+        u.SetInBattle(true);
+
+        tile.placedUnit = go;
+        TryMergrAfterSpawn(u);
+    }
+
     public Tile GetTileUnderWorld(Vector3 worldPos)
     {
         Ray ray = new Ray(worldPos + Vector3.up * 5f, Vector3.down);
@@ -595,6 +658,7 @@ public class GridManager : MonoBehaviour
         }
         return null;
     }
+
     public bool IsOverSellZone(Vector3 worldPos)
     {
         Ray ray = new Ray(worldPos + Vector3.up * 5f, Vector3.down);
@@ -672,5 +736,52 @@ public class GridManager : MonoBehaviour
             if (t.placedUnit == u.gameObject) return true;
         }
         return false;
+    }
+
+    private void CachePlacementBeforeBattle()
+    {
+        cachedSetupPos.Clear();
+        cachedSetupRot.Clear();
+
+        foreach (Unit u in FindObjectsOfType<Unit>())
+        {
+            if (u == null) continue;
+            if (u.IsDead()) continue;
+            if (u.team != TeamType.Player) continue;
+
+            cachedSetupPos[u] = u.transform.position;
+            cachedSetupRot[u] = u.transform.rotation;
+        }
+
+        Debug.Log($"[Cache] saved {cachedSetupPos.Count} Player unit placements");
+    }
+
+    private void RestorePlacementForSetup()
+    {
+        foreach (var kv in cachedSetupPos)
+        {
+            Unit u = kv.Key;
+            if (u == null) continue;
+            if (u.IsDead()) continue;
+
+            u.transform.position = kv.Value;
+
+            if (cachedSetupRot.TryGetValue(u, out var rot))
+                u.transform.rotation = rot;
+        }
+
+        cachedSetupPos.Clear();
+        cachedSetupRot.Clear();
+    }
+
+    public bool CanPlaceUnitOnTile(Unit u, Tile tile)
+    {
+        if (u == null || tile == null) return false;
+        if (!tile.isPlaceable) return false;
+        if (tile.placedUnit != null) return false;
+
+        if (u.team == TeamType.Player && !IsPlayerZone(tile)) return false;
+
+        return true;
     }
 }

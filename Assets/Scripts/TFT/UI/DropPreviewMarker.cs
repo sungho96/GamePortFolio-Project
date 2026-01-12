@@ -8,8 +8,8 @@ public class DropPreviewMarker : MonoBehaviour
     [SerializeField] private SpriteRenderer ring;
     [SerializeField] private float yOffset = 0.02f;
 
-    [SerializeField] private Color vaildColor = Color.green;
-    [SerializeField] private Color invaildColor = Color.red;
+    [SerializeField] private Color validColor = Color.green;
+    [SerializeField] private Color invalidColor = Color.red;
     [SerializeField] private Color sellColor = new Color(1f, 0.6f, 0.1f, 1f);
 
     public void Show(Vector3 pos, Mode mode, bool valid)
@@ -19,7 +19,7 @@ public class DropPreviewMarker : MonoBehaviour
         if(ring != null)
         {
             if (mode == Mode.Sell) ring.color = sellColor;
-            else ring.color = valid ? vaildColor : invaildColor;
+            else ring.color = valid ? validColor : invalidColor;
         }
     }
     public void Hide()

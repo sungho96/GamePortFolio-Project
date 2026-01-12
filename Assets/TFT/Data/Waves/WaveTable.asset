@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc8feb01311ca0f4ca821761c615c65f, type: 3}
+  m_Name: WaveTable
+  m_EditorClassIdentifier: 
+  waves:
+  - round: 1
+    spawns:
+    - unit: {fileID: 11400000, guid: 66ea7582fec5b454f8aa007892e0de94, type: 2}
+      count: 1
+  - round: 2
+    spawns:
+    - unit: {fileID: 11400000, guid: 0254e96d48d06d526866788d3b7fe882, type: 2}
+      count: 2
+    - unit: {fileID: 11400000, guid: 66ea7582fec5b454f8aa007892e0de94, type: 2}
+      count: 1
+  - round: 3
+    spawns:
+    - unit: {fileID: 11400000, guid: 66ea7582fec5b454f8aa007892e0de94, type: 2}
+      count: 3
+    - unit: {fileID: 11400000, guid: 0254e96d48d06d526866788d3b7fe882, type: 2}
+      count: 2

@@ -98,7 +98,8 @@ public class DragUnit : MonoBehaviour
 
         Tile tile = grid.GetTileUnderWorld(transform.position);
 
-        if (tile != null && tile.isPlaceable && tile.placedUnit == null)
+        if (tile != null && tile.isPlaceable && tile.placedUnit == null 
+            &&(unit.team != TeamType.Player || grid.IsPlayerZone(tile)))
         {
             if (startBenchSlot != null)
                 startBenchSlot.placedUnit = null;
@@ -166,15 +167,16 @@ public class DragUnit : MonoBehaviour
         Tile tile = grid.GetTileUnderWorld(p);
         if (tile != null)
         {
-            bool vaild = tile.isPlaceable && tile.placedUnit == null;
-            grid.previewMarker.Show(tile.transform.position, DropPreviewMarker.Mode.Board, vaild);
+            if (unit == null) unit = GetComponent<Unit>();
+            bool valid = grid.CanPlaceUnitOnTile(unit, tile);
+            grid.previewMarker.Show(tile.transform.position, DropPreviewMarker.Mode.Board, valid);
             return;
         }
         BenchSlot slot = grid.GetBenchSlotUnderWorld(p);
         if (slot != null)
         {
-            bool vaild = !slot.HasUnit;
-            grid.previewMarker.Show(slot.transform.position, DropPreviewMarker.Mode.Bench, vaild);
+            bool valid = !slot.HasUnit;
+            grid.previewMarker.Show(slot.transform.position, DropPreviewMarker.Mode.Bench, valid);
             return;
         }
         grid.previewMarker.Hide();
