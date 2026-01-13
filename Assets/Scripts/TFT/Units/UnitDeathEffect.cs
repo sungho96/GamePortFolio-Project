@@ -14,12 +14,12 @@ public class UnitDeathEffect : MonoBehaviour
         rends = GetComponentsInChildren<Renderer>();
         startScale = transform.localScale;
     }
-    public void PlayAndDestroy()
+    public void Play(System.Action onFinish)
     {
-        StartCoroutine(Co_Death());
+        StartCoroutine(Co_Death(onFinish));
     }
 
-    private IEnumerator Co_Death()
+    private IEnumerator Co_Death(System.Action onFinish)
     {
         float t = 0f;
 
@@ -41,7 +41,6 @@ public class UnitDeathEffect : MonoBehaviour
 
             yield return null;
         }
-
-        Destroy(gameObject);
+        onFinish?.Invoke();
     }
 }

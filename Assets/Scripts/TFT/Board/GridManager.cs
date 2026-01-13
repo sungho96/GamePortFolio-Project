@@ -58,6 +58,9 @@ public class GridManager : MonoBehaviour
     private int lastRewardeRound = 0;
     private bool lastRoundPlayerWin = false;
 
+    [Header("Player HP")]
+    public int playerHP = 100;
+
     [Header("Drag Drop Raycast")]
     public LayerMask tileLayerMask;
     public LayerMask benchSlotLayerMask;
@@ -298,15 +301,35 @@ public class GridManager : MonoBehaviour
         foreach (Unit unit in units)
         {
             if (unit == null) continue;
+            if (!unit.IsDead()) continue;
 
-            if (unit.IsDead())
+            if (unit.team == TeamType.Enemy)
             {
-                if (unit.gameObject.GetComponent<UnitDeathEffect>() != null) continue;
-                var death = unit.gameObject.AddComponent<UnitDeathEffect>();
+                if (unit.GetComponent<UnitDeathEffect>() != null) continue;
 
-                death.PlayAndDestroy();
-                Debug.Log($"<color=red>[Death]</color> {unit.team} unit died");
+                var death = unit.gameObject.AddComponent<UnitDeathEffect>();
+                death.Play(() =>
+                {
+                    Destroy(unit.gameObject);
+                });
+
+                Debug.Log($"<color=red>[Enemy Death]</color>");
             }
+
+            else if (unit.team == TeamType.Player)
+            {
+                if (unit.GetComponent<UnitDeathEffect>() != null) continue;
+
+                var death = unit.gameObject.AddComponent<UnitDeathEffect>();
+                death.Play(() =>
+                {
+                    unit.SetInBattle(false);
+                    unit.gameObject.SetActive(false);
+                });
+
+                Debug.Log($"<color=yellow>[Player Down]</color> {unit.unitId}");
+            }
+
         }
     }
 
@@ -333,6 +356,11 @@ public class GridManager : MonoBehaviour
 
                 ApplyRoundIncome(lastRoundPlayerWin);
                 CleanupAfterRound();
+                if (!lastRoundPlayerWin)
+                {
+                    int damage = CalculateDefeatDamage(units);
+                    ApplyPlayerDamage(damage);
+                }
 
                 if (autoAdvanceRound)
                     StartCoroutine(CoprepareNextRound(roundEndDelay));
@@ -534,26 +562,25 @@ public class GridManager : MonoBehaviour
         foreach (Unit u in FindObjectsOfType<Unit>())
         {
             if (u == null) continue;
+
             if (u.team == TeamType.Enemy)
             {
                 ClearTileReference(u);
                 Destroy(u.gameObject);
+                continue;
             }
 
+            u.gameObject.SetActive(true);
+            u.SetInBattle(false);
+
+            u.currentHp = u.maxHp;
             u.currentTarget = null;
             u.nextRetargetTime = 0f;
         }
 
-        foreach (Tile t in tiles)
-        {
-            if (t == null) continue;
-            if (t.placedUnit == null) continue;
+        RestorePlacementForSetup();
 
-            if (t.placedUnit == null)
-                t.placedUnit = null;
-        }
-
-        Debug.Log("<color=cyan>[RoundEnd]</color> Cleanup done (enemy remvoed, targets removed");
+        Debug.Log("<color=cyan>[roundEnd]</color> Player units restored");
     }
 
     public void UI_Roll()
@@ -778,10 +805,36 @@ public class GridManager : MonoBehaviour
     {
         if (u == null || tile == null) return false;
         if (!tile.isPlaceable) return false;
-        if (tile.placedUnit != null) return false;
+        if (tile.placedUnit != null && tile.placedUnit != u.gameObject) return false;
 
         if (u.team == TeamType.Player && !IsPlayerZone(tile)) return false;
 
         return true;
+    }
+    private int CalculateDefeatDamage(List<Unit> units)
+    {
+        int damage = 0;
+
+        foreach (Unit u in units)
+        {
+            if (u == null) continue;
+            if (u.IsDead()) continue;
+            if (u.team != TeamType.Enemy) continue;
+
+            damage += 3 + (u.star - 1);
+        }
+        return damage;
+    }
+    private void ApplyPlayerDamage(int damage)
+    {
+        if (damage <= 0) return;
+
+        playerHP -= damage;
+        playerHP = Mathf.Max(0, playerHP);
+
+        Debug.Log($"<color=red>[Player Damage]</color> -{damage} HP => PlayerHP={playerHP}");
+
+        if (playerHP <= 0)
+            Debug.Log("$<color=red>[Game over]</color> Player HP reached 0");
     }
 }

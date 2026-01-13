@@ -175,7 +175,7 @@ public class DragUnit : MonoBehaviour
         BenchSlot slot = grid.GetBenchSlotUnderWorld(p);
         if (slot != null)
         {
-            bool valid = !slot.HasUnit;
+            bool valid = !slot.HasUnit || slot.placedUnit == gameObject;
             grid.previewMarker.Show(slot.transform.position, DropPreviewMarker.Mode.Bench, valid);
             return;
         }
